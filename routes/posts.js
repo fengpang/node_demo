@@ -68,13 +68,27 @@ router.get('/:postId', (req, res, next) => {
 
 // GET /posts/:postId/edit 更新文章页
 router.get('/:postId/edit', checkLogin, (req, res, next) => {
-    res.send('更新文章页')
+    const postId = req.params.postId
+    const author = req.session.user._id
+
+    PostModel.getRawPostById(postId)
+      .then(post => {
+        if(!post) {
+          throw new Error('该文章不存在')
+        }
+        if(post.author.toString() !== author.toString()) {
+          throw new Error("权限不足")
+        }
+        res.render('edit', {post})
+        .catch(next)
+      })
 })
 
 // POST /posts/:postId/edit 更新一篇文章
 router.get('/:postId/edit', checkLogin, (req, res, next) => {
   res.send('更新文章')
 })
+
 // POST /post/:postId/remove 删除一篇文章
 router.post('/:postId/remove', checkLogin, (req, res, next) => {
   const postId = req.params.postId
