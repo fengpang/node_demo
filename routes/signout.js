@@ -5,6 +5,8 @@ const checkLogin = require('../middlewares/check').checkLogin
 
 // GET siginout 登出
 router.get('/', checkLogin, (req, res, next) => {
-  res.send('dengchu')
+  req.session.user = null
+  req.flash('success', '登出成功')
+  res.redirect('/posts')
 })
 module.exports = router
