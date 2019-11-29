@@ -1,5 +1,25 @@
 const marked = require('marked')
 const Post = require('../lib/mongo').Post
+const CommentModel = require('./comments')
+
+// 给posts添加留言数量
+Post.plugin('addCommentsCount', {
+  afterFind (posts) {
+    return Promise.all(posts.map(post => {
+      return CommentModel.getCommentsCount(post._id).then(commentsCount => {
+        post.commentsCount = commentsCount
+        return post
+      })
+    }))
+  },
+  afterFindOne (post) {
+    if(!post) return post
+    return CommentModel.getCommentsCount(post._id).then(commentsCount => {
+      post.commentsCount = commentsCount
+      return post
+    })
+  }
+})
 
 Post.plugin('contentToHtml', {
   afterFind: posts => {
@@ -38,6 +58,7 @@ module.exports = {
       .populate({path: 'author', model: 'User'})
       .sort({_id: -1})
       .addCreatedAt()
+      .addCommentsCount()
       .contentToHtml()
       .exec()
   },
@@ -56,6 +77,12 @@ module.exports = {
     return Post.update({_id: postId}, {$set: data}).exec()
   },
   delPostById: postId => {
-    return Post.deleteOne({_id: postId}).exec()
+    return Post.deleteOne({_id: postId})
+      .exec()
+      .then(res => {
+        if(res.result.ok && res.result.n > 0) {
+          return CommentModel.delCommentByPostId(postId)
+        }
+      })
   }
 }
